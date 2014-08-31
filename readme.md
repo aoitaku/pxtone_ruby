@@ -3,7 +3,7 @@
 |         |                                         |
 |---------|-----------------------------------------|
 | Author  | aoitaku                                 |
-| Version | 0.0.1                                   |
+| Version | 0.0.2                                   |
 
 Ruby からピストンコラージュ（&copy; [Studio Pixel](http://studiopixel.sakura.ne.jp/pxtone/index.html)）の楽曲ファイル（ .ptcop や .pttune ）を再生できるようにする拡張ライブラリです。  
 Ruby2.0.0-i386-mingw32 用です。ほかはビルドを試していないので分かりません。
@@ -62,4 +62,8 @@ Pxtone/Ruby は DXRuby とセットでの利用を想定していますが、単
 
 ## 更新履歴
 
+2014-08-31 0.0.2 pause/resume 機能を追加
+                 quality メソッドの名前の typo を修正
+                 文字列型の戻り値が正しいエンコーディング情報を持つように修正
+                 一部引数の型の不正を修正
 2014-08-31 0.0.1 公開
