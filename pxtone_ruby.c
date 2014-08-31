@@ -43,7 +43,6 @@ static VALUE Pxtone_last_error(VALUE object)
     return rb_str_new2(pxtone_GetLastError());
 }
 
-static VALUE Pxtone_quolity(VALUE object)
 static VALUE Pxtone_quality(VALUE object)
 {
     int channel_num, sps, bps, smp_per_buf;
@@ -248,7 +247,6 @@ void Init_Pxtone(void)
 
     rb_define_singleton_method(mPxtone, "reset", Pxtone_reset, 3);
     rb_define_singleton_method(mPxtone, "last_error", Pxtone_last_error, 0);
-    rb_define_singleton_method(mPxtone, "quolity", Pxtone_quolity, 4);
     rb_define_singleton_method(mPxtone, "quality", Pxtone_quality, 4);
     rb_define_singleton_method(mPxtone, "load_tune", Pxtone_load_tune, 1);
     rb_define_singleton_method(mPxtone, "release_tune", Pxtone_release_tune, 0);
