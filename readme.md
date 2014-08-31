@@ -38,6 +38,21 @@ Pxtone.play(pos) # 停止位置から再開する
 詳細は [APIリファレンス](https://github.com/aoitaku/pxtone_ruby/wiki) を参照してください。
 
 
+## サンプル
+
+sample フォルダに入っています。  
+DXRuby を使っているので、DXRuby をインストールする必要があります。  
+実行するときは pxtoneWin32.dll にパスを通すか、pxtoneWin32.dll のあるディレクトリで Ruby を実行してください。
+
+よく分からない人は単に bin フォルダ で
+
+```
+ruby ../sample/pxtone.rb
+```
+
+とすれば実行できます。
+
+
 ## 謝辞（敬称略）
 
 [Studio Pixel](http://studiopixel.sakura.ne.jp/)
@@ -54,6 +69,10 @@ Pxtone.play(pos) # 停止位置から再開する
 
 Pxtone/Ruby は zlib/libpng ライセンスとします。ご自由にお使いください。  
 再配布の際には pxtoneWin32.dll を含めても構いません。ただし、本ライブラリを使用して生じた一切の問題について Studio Pixel に問い合わせを行わないようにお願いします。
+
+同梱のサンプルおよび楽曲データはパブリックドメインとします。
+
+フォントは個別のライセンスに従ってください。
 
 
 ## 補足
