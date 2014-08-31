@@ -1,1 +1,3 @@
 Makefile
+*.o
+Pxtone-i386-mingw32.def
