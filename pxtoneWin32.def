@@ -1,0 +1,27 @@
+LIBRARY pxtoneWin32.dll
+EXPORTS
+pxtone_GetDirectSound
+pxtone_GetLastError
+pxtone_GetQuality
+pxtone_Noise_Create
+pxtone_Noise_Create_FromMemory
+pxtone_Noise_Initialize
+pxtone_Noise_Release
+pxtone_Ready
+pxtone_Release
+pxtone_Reset
+pxtone_Tune_Fadeout
+pxtone_Tune_GetComment
+pxtone_Tune_GetInformation
+pxtone_Tune_GetName
+pxtone_Tune_GetPlayMeas
+pxtone_Tune_GetRepeatMeas
+pxtone_Tune_IsStreaming
+pxtone_Tune_Load
+pxtone_Tune_Read
+pxtone_Tune_Release
+pxtone_Tune_SetLoop
+pxtone_Tune_SetVolume
+pxtone_Tune_Start
+pxtone_Tune_Stop
+pxtone_Tune_Vomit
