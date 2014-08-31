@@ -1,28 +1,19 @@
 /*
- * やってないこと:
- * - pxtone_Tune_Read
- *     リソースパッキングしたときくらいしか使わないと思うので後で考える
- * - pxtone_GetDirectSound
- *     ポインタもらってもRuby側で何に使うんだろう
- *     とりあえず実装しない
- * - pxtone_Tune_Vomit
- *     書き出すのはいいんだけどRubyでポインタもらってもどうしようもないので
- *     抽象化を考えないといけない
- *     ポインタからStringオブジェクトを作ればAyame.load_from_memoryとかできる
- *     このとき書き出したメモリはRubyが管理するってことでいいのかな、とか
- *     そのへんも調べる
- * - pause / resume
- *     stopの戻り値使って再生開始位置を指定できるのでとりあえずそれで……
- * - ピストンノイズの読み込み全般
- *     ピスコラ解放時に読み込んだノイズも解放しないとリークするので
- *     読み込んだノイズの管理をしないとダメ
- */
+###################################
+#
+# PXtone/Ruby 0.0.1
+#
+###################################
+*/
 
 #include <ruby.h>
 #include <windows.h>
 #include "pxtoneWin32.h"
 
-static VALUE cPxtone;
+#define PXTONE_RUBY_VERSION "0.0.1"
+#define PXTONE_DLL_VERSION "0.9.2.5"
+
+static VALUE mPxtone;
 static VALUE ePxtoneError; // 例外.
 
 static HWND g_hWnd; // グローバルなウィンドウハンドル.
@@ -252,26 +243,29 @@ void Init_Pxtone(void)
     }
 
     // Pxtone モジュールを定義.
-    cPxtone = rb_define_module("Pxtone");
+    mPxtone = rb_define_module("Pxtone");
 
-    rb_define_singleton_method(cPxtone, "reset", Pxtone_reset, 3);
-    rb_define_singleton_method(cPxtone, "last_error", Pxtone_last_error, 0);
-    rb_define_singleton_method(cPxtone, "quolity", Pxtone_quolity, 4);
-    rb_define_singleton_method(cPxtone, "load_tune", Pxtone_load_tune, 1);
-    rb_define_singleton_method(cPxtone, "release_tune", Pxtone_release_tune, 0);
-    rb_define_singleton_method(cPxtone, "play", Pxtone_play, -1);
-    rb_define_singleton_method(cPxtone, "fadein", Pxtone_fadein, -1);
-    rb_define_singleton_method(cPxtone, "fadeout", Pxtone_fadeout, 1);
-    rb_define_singleton_method(cPxtone, "set_volume", Pxtone_set_volume, 1);
-    rb_define_singleton_method(cPxtone, "stop", Pxtone_stop, 0);
-    rb_define_singleton_method(cPxtone, "loop_on", Pxtone_loop_on, 0);
-    rb_define_singleton_method(cPxtone, "loop_off", Pxtone_loop_off, 0);
-    rb_define_singleton_method(cPxtone, "playing?", Pxtone_IsPlaying, 0);
-    rb_define_singleton_method(cPxtone, "repeat_measure", Pxtone_repeat_measure, 0);
-    rb_define_singleton_method(cPxtone, "play_measure", Pxtone_play_measure, 0);
-    rb_define_singleton_method(cPxtone, "tune_information", Pxtone_tune_information, 0);
-    rb_define_singleton_method(cPxtone, "tune_name", Pxtone_tune_name, 0);
-    rb_define_singleton_method(cPxtone, "tune_comment", Pxtone_tune_comment, 0);
+    rb_define_singleton_method(mPxtone, "reset", Pxtone_reset, 3);
+    rb_define_singleton_method(mPxtone, "last_error", Pxtone_last_error, 0);
+    rb_define_singleton_method(mPxtone, "quolity", Pxtone_quolity, 4);
+    rb_define_singleton_method(mPxtone, "load_tune", Pxtone_load_tune, 1);
+    rb_define_singleton_method(mPxtone, "release_tune", Pxtone_release_tune, 0);
+    rb_define_singleton_method(mPxtone, "play", Pxtone_play, -1);
+    rb_define_singleton_method(mPxtone, "fadein", Pxtone_fadein, -1);
+    rb_define_singleton_method(mPxtone, "fadeout", Pxtone_fadeout, 1);
+    rb_define_singleton_method(mPxtone, "set_volume", Pxtone_set_volume, 1);
+    rb_define_singleton_method(mPxtone, "stop", Pxtone_stop, 0);
+    rb_define_singleton_method(mPxtone, "loop_on", Pxtone_loop_on, 0);
+    rb_define_singleton_method(mPxtone, "loop_off", Pxtone_loop_off, 0);
+    rb_define_singleton_method(mPxtone, "playing?", Pxtone_IsPlaying, 0);
+    rb_define_singleton_method(mPxtone, "repeat_measure", Pxtone_repeat_measure, 0);
+    rb_define_singleton_method(mPxtone, "play_measure", Pxtone_play_measure, 0);
+    rb_define_singleton_method(mPxtone, "tune_information", Pxtone_tune_information, 0);
+    rb_define_singleton_method(mPxtone, "tune_name", Pxtone_tune_name, 0);
+    rb_define_singleton_method(mPxtone, "tune_comment", Pxtone_tune_comment, 0);
+
+    rb_define_const(mPxtone, "VERSION", rb_str_new2(PXTONE_RUBY_VERSION));
+    rb_define_const(mPxtone, "DLL_VERSION", rb_str_new2(PXTONE_DLL_VERSION));
 
     rb_set_end_proc((void(*)(VALUE))Pxtone_shutdown, Qnil);
 }
