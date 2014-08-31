@@ -44,7 +44,7 @@ Pxtone.play(pos) # 停止位置から再開する
 ピストンコラージュの配布元です。
 
 
-[DXRuby](http://dxruby.sourceforge.jp/)
+[Project DXRuby](http://dxruby.sourceforge.jp/)
 
 本ライブラリの製作にあたって、DXRuby および Ayame/Ruby のソースコードを参考にさせていただきました。
 
