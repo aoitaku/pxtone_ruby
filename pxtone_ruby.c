@@ -7,6 +7,7 @@
 */
 
 #include <ruby.h>
+#include "ruby/encoding.h"
 #include <windows.h>
 #include "pxtoneWin32.h"
 
@@ -40,7 +41,12 @@ static VALUE Pxtone_reset(VALUE object, VALUE channel_num, VALUE sps, VALUE bps)
 
 static VALUE Pxtone_last_error(VALUE object)
 {
-    return rb_str_new2(pxtone_GetLastError());
+    const char* last_error = pxtone_GetLastError();
+    return rb_enc_str_new(
+        last_error,
+        strlen(last_error),
+        rb_enc_from_index(rb_enc_find_index("Windows-31J"))
+    );
 }
 
 static VALUE Pxtone_quality(VALUE object)
@@ -184,12 +190,22 @@ static VALUE Pxtone_tune_information(VALUE object)
 
 static VALUE Pxtone_tune_name(VALUE object)
 {
-    return rb_str_new2(pxtone_Tune_GetName());
+    const char *tune_name = pxtone_Tune_GetName();
+    return rb_enc_str_new(
+        tune_name,
+        strlen(tune_name),
+        rb_enc_from_index(rb_enc_find_index("Windows-31J"))
+    );
 }
 
 static VALUE Pxtone_tune_comment(VALUE object)
 {
-    return rb_str_new2(pxtone_Tune_GetComment());
+    const char *tune_comment = pxtone_Tune_GetComment();
+    return rb_enc_str_new(
+        tune_comment,
+        strlen(tune_comment),
+        rb_enc_from_index(rb_enc_find_index("Windows-31J"))
+    );
 }
 
 static void Pxtone_shutdown(VALUE object)
