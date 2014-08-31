@@ -82,7 +82,7 @@ static VALUE Pxtone_release_tune(VALUE object)
     }
 }
 
-static VALUE Pxtone_play(VALUE argc, VALUE *argv, VALUE object)
+static VALUE Pxtone_play(int argc, VALUE *argv, VALUE object)
 {
     VALUE start_sample, volume;
     rb_scan_args(argc, argv, "02", &start_sample, &volume);
@@ -100,7 +100,7 @@ static VALUE Pxtone_play(VALUE argc, VALUE *argv, VALUE object)
     }
 }
 
-static VALUE Pxtone_fadein(VALUE argc, VALUE *argv, VALUE object)
+static VALUE Pxtone_fadein(int argc, VALUE *argv, VALUE object)
 {
     VALUE fadein_msec, start_sample, volume;
     rb_scan_args(argc, argv, "12", &fadein_msec, &start_sample, &volume);
