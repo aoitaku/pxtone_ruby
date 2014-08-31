@@ -11,13 +11,16 @@
 #include <windows.h>
 #include "pxtoneWin32.h"
 
-#define PXTONE_RUBY_VERSION "0.0.1"
+#define PXTONE_RUBY_VERSION "0.0.2"
 #define PXTONE_DLL_VERSION "0.9.2.5"
 
 static VALUE mPxtone;
 static VALUE ePxtoneError; // 例外.
 
-static HWND g_hWnd; // グローバルなウィンドウハンドル.
+static HWND  g_hWnd;   // グローバルなウィンドウハンドル.
+static float g_volume; // 現在ボリュームの保持.
+static int   g_sample; // 前回再生位置の保持.
+static bool  g_pause;  // ポーズ中かどうか.
 
 static VALUE Pxtone_reset(VALUE object, VALUE channel_num, VALUE sps, VALUE bps)
 {
@@ -93,10 +96,39 @@ static VALUE Pxtone_play(int argc, VALUE *argv, VALUE object)
     VALUE start_sample, volume;
     rb_scan_args(argc, argv, "02", &start_sample, &volume);
 
+    g_volume = NIL_P(volume) ? 1.0f : (float)NUM2DBL(volume);
+    g_pause = false;
+
     if (pxtone_Tune_Start(
-        start_sample == Qnil ? 0 : NUM2INT(start_sample),
+        NIL_P(start_sample) ? 0 : NUM2INT(start_sample),
         0,
-        volume == Qnil ? 1.0f : (float)NUM2DBL(volume)))
+        g_volume))
+    {
+        return Qtrue;
+    }
+    else
+    {
+        return Qfalse;
+    }
+}
+
+static VALUE Pxtone_resume(int argc, VALUE *argv, VALUE object)
+{
+    VALUE volume;
+
+    if (!g_pause)
+    {
+        return Qfalse;
+    }
+    g_pause = false;
+
+    rb_scan_args(argc, argv, "01", &volume);
+    if (!NIL_P(volume))
+    {
+        g_volume = (float)NUM2DBL(volume);
+    }
+
+    if (pxtone_Tune_Start(g_sample, 0, g_volume))
     {
         return Qtrue;
     }
@@ -111,10 +143,13 @@ static VALUE Pxtone_fadein(int argc, VALUE *argv, VALUE object)
     VALUE fadein_msec, start_sample, volume;
     rb_scan_args(argc, argv, "12", &fadein_msec, &start_sample, &volume);
 
+    g_volume = NIL_P(volume) ? 1.0f : (float)NUM2DBL(volume);
+    g_pause = false;
+
     if (pxtone_Tune_Start(
-        start_sample == Qnil ? 0 : NUM2INT(start_sample),
+        NIL_P(start_sample) ? 0 : NUM2INT(start_sample),
         NUM2INT(fadein_msec),
-        volume == Qnil ? 1.0f : (float)NUM2DBL(volume)))
+        g_volume))
     {
         return Qtrue;
     }
@@ -126,18 +161,36 @@ static VALUE Pxtone_fadein(int argc, VALUE *argv, VALUE object)
 
 static VALUE Pxtone_fadeout(VALUE object, VALUE fadeout_msec)
 {
-    return INT2NUM(pxtone_Tune_Fadeout(NUM2INT(fadeout_msec)));
+    g_sample = pxtone_Tune_Fadeout(NUM2INT(fadeout_msec));
+    g_pause  = false;
+    return INT2NUM(g_sample);
+}
+
+static VALUE Pxtone_volume(VALUE object)
+{
+    return rb_Float(g_volume);
 }
 
 static VALUE Pxtone_set_volume(VALUE object, VALUE volume)
 {
-    pxtone_Tune_SetVolume((float)NUM2DBL(volume));
+    g_volume = (float)NUM2DBL(volume);
+    pxtone_Tune_SetVolume(g_volume);
     return Qnil;
 }
 
 static VALUE Pxtone_stop(VALUE object)
 {
+    // 停止したときは 0 に戻す.
+    g_sample = 0;
+    g_pause = false;
     return INT2NUM(pxtone_Tune_Stop());
+}
+
+static VALUE Pxtone_pause(VALUE object)
+{
+    g_sample = pxtone_Tune_Stop();
+    g_pause = true;
+    return INT2NUM(g_sample);
 }
 
 static VALUE Pxtone_loop_on(VALUE object)
@@ -155,6 +208,18 @@ static VALUE Pxtone_loop_off(VALUE object)
 static VALUE Pxtone_IsPlaying(VALUE object)
 {
     if (pxtone_Tune_IsStreaming())
+    {
+        return Qtrue;
+    }
+    else
+    {
+        return Qfalse;
+    }
+}
+
+static VALUE Pxtone_IsPaused(VALUE object)
+{
+    if (g_pause)
     {
         return Qtrue;
     }
@@ -210,6 +275,11 @@ static VALUE Pxtone_tune_comment(VALUE object)
 
 static void Pxtone_shutdown(VALUE object)
 {
+    // 再生中なら念の為に停止しておく.
+    if (pxtone_Tune_IsStreaming())
+    {
+        pxtone_Tune_Stop();
+    }
     pxtone_Release();
 }
 
@@ -267,13 +337,17 @@ void Init_Pxtone(void)
     rb_define_singleton_method(mPxtone, "load_tune", Pxtone_load_tune, 1);
     rb_define_singleton_method(mPxtone, "release_tune", Pxtone_release_tune, 0);
     rb_define_singleton_method(mPxtone, "play", Pxtone_play, -1);
+    rb_define_singleton_method(mPxtone, "resume", Pxtone_resume, -1);
     rb_define_singleton_method(mPxtone, "fadein", Pxtone_fadein, -1);
     rb_define_singleton_method(mPxtone, "fadeout", Pxtone_fadeout, 1);
+    rb_define_singleton_method(mPxtone, "volume", Pxtone_volume, 0);
     rb_define_singleton_method(mPxtone, "set_volume", Pxtone_set_volume, 1);
     rb_define_singleton_method(mPxtone, "stop", Pxtone_stop, 0);
+    rb_define_singleton_method(mPxtone, "pause", Pxtone_pause, 0);
     rb_define_singleton_method(mPxtone, "loop_on", Pxtone_loop_on, 0);
     rb_define_singleton_method(mPxtone, "loop_off", Pxtone_loop_off, 0);
     rb_define_singleton_method(mPxtone, "playing?", Pxtone_IsPlaying, 0);
+    rb_define_singleton_method(mPxtone, "paused?", Pxtone_IsPaused, 0);
     rb_define_singleton_method(mPxtone, "repeat_measure", Pxtone_repeat_measure, 0);
     rb_define_singleton_method(mPxtone, "play_measure", Pxtone_play_measure, 0);
     rb_define_singleton_method(mPxtone, "tune_information", Pxtone_tune_information, 0);
@@ -282,6 +356,10 @@ void Init_Pxtone(void)
 
     rb_define_const(mPxtone, "VERSION", rb_str_new2(PXTONE_RUBY_VERSION));
     rb_define_const(mPxtone, "DLL_VERSION", rb_str_new2(PXTONE_DLL_VERSION));
+
+    g_volume = 1.0f;
+    g_sample = 0;
+    g_pause = false;
 
     rb_set_end_proc((void(*)(VALUE))Pxtone_shutdown, Qnil);
 }
