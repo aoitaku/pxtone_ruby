@@ -1,12 +1,12 @@
 ---
 title: Pxtone/Ruby
 author: aoitaku
-version: 0.0.2
+version: 0.0.3
 ---
 
 # Pxtone/Ruby
 
-Ruby からピストンコラージュ（&copy; [Studio Pixel](http://studiopixel.sakura.ne.jp/pxtone/index.html)）の楽曲ファイル（ .ptcop や .pttune ）を再生できるようにする拡張ライブラリです。  
+Ruby からピストンコラージュ（&copy; [Studio Pixel](http://studiopixel.sakura.ne.jp/pxtone/index.html)）の楽曲ファイル（ .ptcop や .pttune ）を再生できるようにする拡張ライブラリです。ノイズファイル（ .ptnoise ）を読み込んで DXRuby などで再生することもできます。  
 Ruby2.0.0-i386-mingw32 用です。ほかはビルドを試していないので分かりません。
 
 ピストンコラージュのバージョンは 0.9.2.5 です。
@@ -81,6 +81,8 @@ Pxtone/Ruby は DXRuby とセットでの利用を想定していますが、単
 ただし、依存 DLL の関係上 Windows 上でしか動作しないため、Ruby/SDL などと合わせて利用した場合も Windows 上での動作に限定されます。あらかじめご了承ください。
 
 ## 更新履歴
+- 2014-09-11 0.0.3
+  .ptnoise の読み込み / String, Arrayへの書き出しをサポート
 
 - 2014-08-31 0.0.2  
   pause/resume 機能を追加  

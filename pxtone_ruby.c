@@ -1,26 +1,50 @@
 /*
 ###################################
 #
-# PXtone/Ruby 0.0.1
+# PXtone/Ruby 0.0.3
 #
 ###################################
 */
 
 #include <ruby.h>
+#include "ruby/intern.h"
 #include "ruby/encoding.h"
 #include <windows.h>
 #include "pxtoneWin32.h"
 
-#define PXTONE_RUBY_VERSION "0.0.2"
+#define PXTONE_RUBY_VERSION "0.0.3"
 #define PXTONE_DLL_VERSION "0.9.2.5"
 
 static VALUE mPxtone;
+static VALUE cPxtoneNoise;
 static VALUE ePxtoneError; // 例外.
 
 static HWND  g_hWnd;   // グローバルなウィンドウハンドル.
 static float g_volume; // 現在ボリュームの保持.
 static int   g_sample; // 前回再生位置の保持.
 static bool  g_pause;  // ポーズ中かどうか.
+
+struct PxtoneNoiseData {
+    PXTONENOISEBUFFER* buffer;
+    int channel_num;
+    int sps;
+    int bps;
+};
+
+struct PxtoneWaveHeader {
+    char riff[4]; // = "RIFF"
+    unsigned long total_size; // 全体サイズ
+    char fmt[8]; // "WAVEfmt "
+    unsigned long fmt_size; // fmt チャンクサイズ
+    unsigned short format; // フォーマットの種類
+    unsigned short channel; // チャンネル
+    unsigned long rate; // サンプリングレート
+    unsigned long avgbyte; // rate * block
+    unsigned short block; // channels * bit / 8
+    unsigned short bit; // ビット数
+    char data[4]; // = "data"
+    unsigned long data_size; // データサイズ
+};
 
 static VALUE Pxtone_reset(VALUE object, VALUE channel_num, VALUE sps, VALUE bps)
 {
@@ -273,6 +297,149 @@ static VALUE Pxtone_tune_comment(VALUE object)
     );
 }
 
+static void PxtoneNoise_free(struct PxtoneNoiseData *noise)
+{
+    if (noise->buffer != NULL)
+    {
+        pxtone_Noise_Release(noise->buffer);
+        noise->buffer = NULL;
+    }
+    free(noise);
+}
+
+static VALUE PxtoneNoise_allocate(VALUE object)
+{
+    struct PxtoneNoiseData *noise = ALLOC(struct PxtoneNoiseData);
+    noise->buffer = NULL;
+    return Data_Wrap_Struct(object, NULL, PxtoneNoise_free, noise);
+}
+
+static VALUE PxtoneNoise_initialize(int argc, VALUE *argv, VALUE self)
+{
+    struct PxtoneNoiseData *noise;
+    VALUE filename, channel_num, sps, bps;
+    rb_scan_args(argc, argv, "13", &filename, &channel_num, &sps, &bps);
+    Data_Get_Struct(self, struct PxtoneNoiseData, noise);
+    noise->buffer = pxtone_Noise_Create(
+        RSTRING_PTR(filename),
+        NULL,
+        NIL_P(channel_num) ? 1 : NUM2INT(channel_num),
+        NIL_P(sps) ? 44100 : NUM2INT(sps),
+        NIL_P(bps) ? 8 : NUM2INT(bps)
+    );
+    noise->channel_num = NIL_P(channel_num) ? 1 : NUM2INT(channel_num);
+    noise->sps = NIL_P(sps) ? 44100 : NUM2INT(sps);
+	noise->bps = NIL_P(bps) ? 8 : NUM2INT(bps);
+    return self;
+}
+
+static VALUE PxtoneNoise_dispose(VALUE self)
+{
+    struct PxtoneNoiseData *noise;
+    Data_Get_Struct(self, struct PxtoneNoiseData, noise);
+    if (noise->buffer != NULL)
+    {
+        pxtone_Noise_Release(noise->buffer);
+        noise->buffer = NULL;
+    }
+    free(noise);
+    return self;
+}
+
+static VALUE PxtoneNoise_to_a(VALUE self)
+{
+    struct PxtoneNoiseData *noise;
+    int i;
+    double buf;
+    VALUE buffer;
+    VALUE note;
+    Data_Get_Struct(self, struct PxtoneNoiseData, noise);
+    if (noise->buffer != NULL)
+    {
+        if (noise->bps == 16)
+        {
+            buffer = rb_ary_new2(noise->sps);
+            for (i = 0; i < noise->sps; i++)
+            {
+                buf = ((noise->buffer->p_buf[i*2] | (0 | noise->buffer->p_buf[i*2+1]) << 8));
+                buf = (buf < 246 ? 0 : buf - 246) / -32768;
+                note = rb_float_new(
+                    buf < - 1.0 ? 2 + buf : buf
+                );
+                rb_ary_store(buffer, i, note);
+            }
+            return buffer;
+        }
+        else
+        {
+            buffer = rb_ary_new2(noise->sps);
+            for (i = 0; i < noise->sps; i++)
+            {
+                note = rb_float_new(((float)noise->buffer->p_buf[i] - 128) / -128);
+                rb_ary_store(buffer, i, note);
+            }
+            return buffer;
+        }
+    }
+    else
+    {
+        return Qnil;
+    }
+}
+
+static VALUE PxtoneNoise_to_s(VALUE self)
+{
+    struct PxtoneNoiseData *noise;
+    struct PxtoneWaveHeader *header;
+    VALUE buffer;
+    VALUE wave_buffer;
+    Data_Get_Struct(self, struct PxtoneNoiseData, noise);
+    if (noise->buffer != NULL)
+    {
+        header = rb_alloc_tmp_buffer(&buffer, sizeof(struct PxtoneWaveHeader));
+        strcpy(header->riff, "RIFF");
+        header->total_size = sizeof(struct PxtoneWaveHeader) - 8 + noise->buffer->size;
+        strcpy(header->fmt, "WAVEfmt ");
+        header->fmt_size = 16;
+        header->format = 1;
+        header->channel = noise->channel_num;
+        header->rate = noise->sps;
+        header->avgbyte = noise->sps * noise->channel_num * noise->bps / 8;
+        header->block = noise->channel_num * noise->bps / 8;
+        header->bit = noise->bps;
+        strcpy(header->data, "data");
+        header->data_size = noise->buffer->size;
+        wave_buffer = rb_str_cat(rb_str_new((void*)header, sizeof(struct PxtoneWaveHeader)), (const char*)noise->buffer->p_buf, noise->buffer->size);
+        rb_free_tmp_buffer(&buffer);
+        return wave_buffer;
+    }
+    else
+    {
+        return Qnil;
+    }
+}
+
+static VALUE PxtoneNoise_channel_num(VALUE self)
+{
+    struct PxtoneNoiseData *noise;
+    Data_Get_Struct(self, struct PxtoneNoiseData, noise);
+    return INT2NUM(noise->channel_num);
+}
+
+static VALUE PxtoneNoise_sps(VALUE self)
+{
+    struct PxtoneNoiseData *noise;
+    Data_Get_Struct(self, struct PxtoneNoiseData, noise);
+    return INT2NUM(noise->sps);
+}
+
+static VALUE PxtoneNoise_bps(VALUE self)
+{
+    struct PxtoneNoiseData *noise;
+    Data_Get_Struct(self, struct PxtoneNoiseData, noise);
+    return INT2NUM(noise->bps);
+}
+
 static void Pxtone_shutdown(VALUE object)
 {
     // 再生中なら念の為に停止しておく.
@@ -356,6 +523,17 @@ void Init_Pxtone(void)
 
     rb_define_const(mPxtone, "VERSION", rb_str_new2(PXTONE_RUBY_VERSION));
     rb_define_const(mPxtone, "DLL_VERSION", rb_str_new2(PXTONE_DLL_VERSION));
+
+    cPxtoneNoise = rb_define_class("PxtoneNoise", rb_cObject);
+    rb_define_alloc_func(cPxtoneNoise, PxtoneNoise_allocate);
+    rb_define_private_method(cPxtoneNoise, "initialize", PxtoneNoise_initialize, -1);
+    rb_define_method(cPxtoneNoise, "dispose", PxtoneNoise_dispose, 0);
+    rb_define_method(cPxtoneNoise, "to_a", PxtoneNoise_to_a, 0);
+    rb_define_method(cPxtoneNoise, "to_s", PxtoneNoise_to_s, 0);
+    rb_define_method(cPxtoneNoise, "channel_num", PxtoneNoise_channel_num, 0);
+    rb_define_method(cPxtoneNoise, "sps", PxtoneNoise_sps, 0);
+    rb_define_method(cPxtoneNoise, "bps", PxtoneNoise_bps, 0);
+
 
     g_volume = 1.0f;
     g_sample = 0;
