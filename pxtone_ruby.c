@@ -168,7 +168,7 @@ static VALUE Pxtone_fadeout(VALUE object, VALUE fadeout_msec)
 
 static VALUE Pxtone_volume(VALUE object)
 {
-    return rb_Float(g_volume);
+    return rb_float_new(g_volume);
 }
 
 static VALUE Pxtone_set_volume(VALUE object, VALUE volume)
@@ -247,7 +247,7 @@ static VALUE Pxtone_tune_information(VALUE object)
     return rb_ary_new3(
         4,
         INT2NUM(beat_num),
-        rb_Float(beat_tempo),
+        rb_float_new(beat_tempo),
         INT2NUM(beat_clock),
         INT2NUM(meas_num)
     );
